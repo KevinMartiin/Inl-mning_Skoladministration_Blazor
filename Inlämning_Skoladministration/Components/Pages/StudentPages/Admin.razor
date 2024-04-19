@@ -1,0 +1,107 @@
+﻿@page "/students"
+@using Microsoft.AspNetCore.Components.QuickGrid
+@inject Inlämning_Skoladministration.Data.Inlämning_SkoladministrationContext DB
+@using Inlämning_Skoladministration
+@rendermode InteractiveServer
+
+<PageTitle>Admin</PageTitle>
+
+<h1>Admin</h1>
+
+<p>
+    <a href="students/apply">Create New</a>
+</p>
+
+<QuickGrid Class="table" Items="SortedStudents" Pagination="state">
+    <PropertyColumn Property="student => student.Name" Sortable="true">
+        <ColumnOptions>
+            <div>
+                <input type="search" @bind="nameFilter" @bind:event="oninput" autofocus class="form-control" />
+            </div>
+        </ColumnOptions>
+    </PropertyColumn>
+    <PropertyColumn Property="student => student.Birthdate" Title="Birth Date" Format="yyyy/MM/dd">
+        <ColumnOptions>
+            <div>
+                <input type="number" @bind="ageFilter" @bind:event="oninput" class="form-control" />
+            </div>
+        </ColumnOptions>
+    </PropertyColumn>
+    <PropertyColumn Property="student => student.Email" />
+
+    <TemplateColumn Context="student">
+        <a href="@($"students/edit?id={student.Id}")">Edit</a> |
+        <a href="@($"students/details?id={student.Id}")">Details</a> |
+        <a href="@($"students/delete?id={student.Id}")">Delete</a>
+    </TemplateColumn>
+</QuickGrid>
+
+
+<Paginator  State="state"/>
+
+@code {
+    PaginationState state = new PaginationState { ItemsPerPage = 10 };
+    string nameFilter = "";
+    int? ageFilter;
+
+    IQueryable<Student> SortedStudents
+    {
+        get
+        {
+            var studentsQuery = DB.Student
+                .Where(s => string.IsNullOrWhiteSpace(nameFilter) || s.Name.Contains(nameFilter));
+
+            if (ageFilter.HasValue)
+            {
+                var minBirthdate = DateTime.Today.AddYears(-ageFilter.Value);
+                studentsQuery = studentsQuery.Where(s => s.Birthdate.HasValue && s.Birthdate.Value <= minBirthdate);
+            }
+
+            return studentsQuery
+                .AsEnumerable() // Utför resten av operationerna på minnet
+                .OrderBy(s => CalculateAge(s.Birthdate.Value))
+                .AsQueryable(); // Konvertera tillbaka till en IQueryable för paginering
+        }
+    }
+
+    private int CalculateAge(DateTime birthdate)
+    {
+        var today = DateTime.Today;
+        var age = today.Year - birthdate.Year;
+        if (birthdate.Date > today.AddYears(-age))
+            age--;
+        return age;
+    }
+
+    private void ClearFilters()
+    {
+        nameFilter = "";
+        ageFilter = null;
+    }
+}
+
+
+
+
+
+
+
+
+
+@* <QuickGrid Class="table" Items="SortedStudents" Pagination="state">
+    <PropertyColumn Property="student => student.Name" Sortable="true">
+        <ColumnOptions>
+            <div>
+                <input type="search" @bind="nameFilter" @bind:event="oninput" autofocus class="form-control" />
+            </div>
+        </ColumnOptions>
+    </PropertyColumn>
+    <PropertyColumn Property="student => student.Birthdate" Title="Birth Date" Format="yyyy/MM/dd" />
+    <PropertyColumn Property="student => student.Email" />
+
+    <TemplateColumn Context="student">
+        <a href="@($"students/edit?id={student.Id}")">Edit</a> |
+        <a href="@($"students/details?id={student.Id}")">Details</a> |
+        <a href="@($"students/delete?id={student.Id}")">Delete</a>
+    </TemplateColumn>
+</QuickGrid> *@

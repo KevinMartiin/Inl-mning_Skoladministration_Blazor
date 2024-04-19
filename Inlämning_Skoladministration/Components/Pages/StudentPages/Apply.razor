@@ -1,0 +1,92 @@
+﻿@page "/students/apply"
+@inject Inlämning_Skoladministration.Data.Inlämning_SkoladministrationContext DB
+@using Inlämning_Skoladministration
+@inject NavigationManager NavigationManager
+
+<PageTitle>Apply</PageTitle>
+
+<h1>Apply</h1>
+
+<h4>Student</h4>
+<hr />
+<div class="row">
+    <div class="col-md-4">
+        <EditForm method="post" Model="Student" OnValidSubmit="AddStudent" FormName="create" Enhance>
+            <DataAnnotationsValidator />
+            <ValidationSummary class="text-danger" />
+            <div class="mb-3">
+                <label for="name" class="form-label">Name:</label>
+                <InputText id="name" @bind-Value="Student.Name" class="form-control" />
+                <ValidationMessage For="() => Student.Name" class="text-danger" />
+            </div>
+            <div class="mb-3">
+                <label for="birthdate" class="form-label">Birthdate:</label>
+                <InputDate id="birthdate" @bind-Value="Student.Birthdate" class="form-control" />
+                <ValidationMessage For="() => Student.Birthdate" class="text-danger" />
+            </div>
+            <div class="mb-3">
+                <label for="email" class="form-label">Email:</label>
+                <InputText id="email" @bind-Value="Student.Email" class="form-control" />
+                <ValidationMessage For="() => Student.Email" class="text-danger" />
+            </div>
+            <button type="submit" class="btn btn-primary">Apply</button>
+        </EditForm>
+    </div>
+</div>
+
+
+@code {
+
+    [SupplyParameterFromForm]
+    public Student Student { get; set; } = new();
+
+    // To protect from overposting attacks, see https://aka.ms/RazorPagesCRUD
+    // public async Task AddStudent()
+    // {
+    //     DB.Student.Add(Student);
+    //     await DB.SaveChangesAsync();
+    //     NavigationManager.NavigateTo("/students");
+    // }
+    public async Task AddStudent()
+    {
+        if (!ValidateStudent())
+            return;
+
+        DB.Student.Add(Student);
+        await DB.SaveChangesAsync();
+        NavigationManager.NavigateTo("/students");
+    }
+
+    private bool ValidateStudent()
+    {
+        if (string.IsNullOrWhiteSpace(Student.Name) || string.IsNullOrWhiteSpace(Student.Email))
+        {
+            return false;
+        }
+        // return false;
+
+        // Kontrollera om födelsedatumet är mindre än 10 år tillbaka i tiden
+        var tenYearsAgo = DateTime.Today.AddYears(-10);
+        if (Student.Birthdate == null || Student.Birthdate > tenYearsAgo)
+            return false;
+
+        // Kontrollera e-postadressens giltighet med en annan metod
+        if (!IsValidEmailFormat(Student.Email))
+            return false;
+
+        return true;
+    }
+
+    private bool IsValidEmailFormat(string email)
+    {
+        try
+        {
+            var addr = new System.Net.Mail.MailAddress(email);
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+}
